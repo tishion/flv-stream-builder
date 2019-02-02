@@ -16,9 +16,11 @@
 #include <memory>
 #include <vector>
 
+// @cond PRIVATE_ENTITY
 /// <summary>
 /// Disallows the copy constructor and operator= functions.
 /// </summary>
+// @endcond
 #define DISALLOW_COPY_AND_ASSIGN(cls)                                          \
   cls(const cls &) = delete;                                                   \
   cls &operator=(const cls &) = delete
@@ -155,7 +157,7 @@ private:
 typedef std::shared_ptr<amf_number> amf_number_ref;
 
 /// <summary>
-///
+/// Represents the AMF Boolean object.
 /// </summary>
 class amf_boolean : public amf_value {
 public:
@@ -210,7 +212,7 @@ private:
 typedef std::shared_ptr<amf_boolean> amf_boolean_ref;
 
 /// <summary>
-///
+/// Represents the AMF String object.
 /// </summary>
 class amf_string : public amf_value {
 public:
@@ -270,7 +272,7 @@ private:
 typedef std::shared_ptr<amf_string> amf_string_ref;
 
 /// <summary>
-///
+/// Represents the AMF Object object.
 /// </summary>
 class amf_object : public amf_value,
                    public std::enable_shared_from_this<amf_object> {
@@ -387,7 +389,7 @@ private:
 typedef std::shared_ptr<amf_object> amf_object_ref;
 
 /// <summary>
-///
+/// Represents the AMF Array object.
 /// </summary>
 class amf_array : public amf_value,
                   public std::enable_shared_from_this<amf_array> {
