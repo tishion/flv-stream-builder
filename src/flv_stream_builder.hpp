@@ -279,7 +279,7 @@ class amf_object : public amf_value,
 public:
   /// <summary>
   /// Enables the std::make_shared to be able to access
-  /// the protected constructor and desctructor.
+  /// the protected constructor and destructor.
   /// </summary>
   friend class std::_Ref_count_obj<amf_object>;
 
