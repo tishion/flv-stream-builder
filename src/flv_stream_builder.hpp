@@ -21,16 +21,19 @@
 /// Disallows the copy constructor and operator= functions.
 /// </summary>
 // @endcond
-#define DISALLOW_COPY_AND_ASSIGN(cls)                                          \
-  cls(const cls &) = delete;                                                   \
+#define DISALLOW_COPY_AND_ASSIGN(cls) \
+  cls(const cls &) = delete;          \
   cls &operator=(const cls &) = delete
 
-namespace flv {
-namespace amf {
+namespace flv
+{
+namespace amf
+{
 /// <summary>
 /// The AFM object types.
 /// </summary>
-enum amf_value_type_e {
+enum amf_value_type_e
+{
   NumberType = 0,  // 8 bytes
   BooleanType = 1, // 1 bytes
   StringType = 2,
@@ -49,7 +52,8 @@ typedef amf_value_type_e amf_value_type_t;
 /// <summary>
 /// Represents the AMF object root.
 /// </summary>
-class amf_root {
+class amf_root
+{
 public:
   virtual ~amf_root(){};
 
@@ -78,7 +82,8 @@ typedef std::shared_ptr<amf_root> amf_root_ref;
 /// <summary>
 /// Represents the AMF value object base.
 /// </summary>
-class amf_value : public amf_root {
+class amf_value : public amf_root
+{
 protected:
   /// <summary>
   /// The AMF value type.
@@ -100,11 +105,12 @@ typedef std::shared_ptr<amf_value> amf_value_ref;
 /// <summary>
 /// Represents the AMF Number object.
 /// </summary>
-class amf_number : public amf_value {
+class amf_number : public amf_value
+{
 public:
   /// <summary>
   /// Enables the std::make_shared to be able to access
-  /// the protected constructor and desctructor.
+  /// the protected constructor and destructor.
   /// </summary>
   friend std::_Ref_count_obj<amf_number>;
 
@@ -113,7 +119,8 @@ public:
   /// </summary>
   /// <param name="value">The value of the Number object.</param>
   /// <returns>The instance of the AMF Number object.</returns>
-  static std::shared_ptr<amf_number> create(double value) {
+  static std::shared_ptr<amf_number> create(double value)
+  {
     return std::make_shared<amf_number>(value);
   }
 
@@ -122,12 +129,14 @@ public:
   /// </summary>
   /// <param name="buf">The buffer to receive the serialized bytes array
   /// data.</param>
-  virtual void serialize(std::vector<uint8_t> &buf) override {
+  virtual void serialize(std::vector<uint8_t> &buf) override
+  {
     buf.reserve(buf.size() + 1 + 8);
     buf.emplace_back(type);
     uint8_t *p = (uint8_t *)&v;
     int i = 8;
-    do {
+    do
+    {
       buf.emplace_back(p[--i]);
     } while (i);
   }
@@ -137,7 +146,8 @@ public:
   /// </summary>
   /// <param name="data">The bytes array data to be parsed.</param>
   /// <returns>True if successful; otherwise fale.</returns>
-  virtual bool deserialize(const std::vector<uint8_t> &data) override {
+  virtual bool deserialize(const std::vector<uint8_t> &data) override
+  {
     throw std::logic_error("The method or operation is not implemented.");
   }
 
@@ -159,11 +169,12 @@ typedef std::shared_ptr<amf_number> amf_number_ref;
 /// <summary>
 /// Represents the AMF Boolean object.
 /// </summary>
-class amf_boolean : public amf_value {
+class amf_boolean : public amf_value
+{
 public:
   /// <summary>
   /// Enables the std::make_shared to be able to access
-  /// the protected constructor and desctructor.
+  /// the protected constructor and destructor.
   /// </summary>
   friend std::_Ref_count_obj<amf_boolean>;
 
@@ -172,7 +183,8 @@ public:
   /// </summary>
   /// <param name="value">The value of the Boolean object.</param>
   /// <returns>The instance of the AMF Boolean object.</returns>
-  static std::shared_ptr<amf_boolean> create(bool value) {
+  static std::shared_ptr<amf_boolean> create(bool value)
+  {
     return std::make_shared<amf_boolean>(value);
   }
 
@@ -181,7 +193,8 @@ public:
   /// </summary>
   /// <param name="buf">The buffer to receive the serialized bytes array
   /// data.</param>
-  virtual void serialize(std::vector<uint8_t> &buf) override {
+  virtual void serialize(std::vector<uint8_t> &buf) override
+  {
     buf.reserve(buf.size() + 1 + 1);
     buf.emplace_back(type);
     buf.emplace_back(v);
@@ -192,7 +205,8 @@ public:
   /// </summary>
   /// <param name="data">The bytes array data to be parsed.</param>
   /// <returns>True if successful; otherwise fale.</returns>
-  virtual bool deserialize(const std::vector<uint8_t> &data) override {
+  virtual bool deserialize(const std::vector<uint8_t> &data) override
+  {
     throw std::logic_error("The method or operation is not implemented.");
   }
 
@@ -214,11 +228,12 @@ typedef std::shared_ptr<amf_boolean> amf_boolean_ref;
 /// <summary>
 /// Represents the AMF String object.
 /// </summary>
-class amf_string : public amf_value {
+class amf_string : public amf_value
+{
 public:
   /// <summary>
   /// Enables the std::make_shared to be able to access
-  /// the protected constructor and desctructor.
+  /// the protected constructor and destructor.
   /// </summary>
   friend class std::_Ref_count_obj<amf_string>;
 
@@ -227,7 +242,8 @@ public:
   /// </summary>
   /// <param name="value">The value of the String object.</param>
   /// <returns>The instance of the AMF String object.</returns>
-  static std::shared_ptr<amf_string> create(const char *value) {
+  static std::shared_ptr<amf_string> create(const char *value)
+  {
     assert(strlen(value) < (size_t)0xffff);
     return std::make_shared<amf_string>(value);
   }
@@ -237,7 +253,8 @@ public:
   /// </summary>
   /// <param name="buf">The buffer to receive the serialized bytes array
   /// data.</param>
-  virtual void serialize(std::vector<uint8_t> &buf) override {
+  virtual void serialize(std::vector<uint8_t> &buf) override
+  {
     assert(v.length() < (size_t)0xffff);
     uint16_t length = static_cast<uint16_t>(v.length());
     buf.reserve(buf.size() + 1 + 2 + length);
@@ -252,7 +269,8 @@ public:
   /// </summary>
   /// <param name="data">The bytes array data to be parsed.</param>
   /// <returns>True if successful; otherwise fale.</returns>
-  virtual bool deserialize(const std::vector<uint8_t> &data) override {
+  virtual bool deserialize(const std::vector<uint8_t> &data) override
+  {
     throw std::logic_error("The method or operation is not implemented.");
   }
 
@@ -275,7 +293,8 @@ typedef std::shared_ptr<amf_string> amf_string_ref;
 /// Represents the AMF Object object.
 /// </summary>
 class amf_object : public amf_value,
-                   public std::enable_shared_from_this<amf_object> {
+                   public std::enable_shared_from_this<amf_object>
+{
 public:
   /// <summary>
   /// Enables the std::make_shared to be able to access
@@ -288,7 +307,8 @@ public:
   /// </summary>
   /// <param name="value">The value of the Object object.</param>
   /// <returns>The instance of the AMF Object object.</returns>
-  static std::shared_ptr<amf_object> create() {
+  static std::shared_ptr<amf_object> create()
+  {
     return std::make_shared<amf_object>();
   }
 
@@ -298,7 +318,8 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_object> with_property(const char *key, double v) {
+  std::shared_ptr<amf_object> with_property(const char *key, double v)
+  {
     assert(strlen(key) < (size_t)0xffff);
     auto pv = amf_number::create(v);
     return this->with_property(key, pv);
@@ -310,7 +331,8 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_object> with_property(const char *key, bool v) {
+  std::shared_ptr<amf_object> with_property(const char *key, bool v)
+  {
     assert(strlen(key) < (size_t)0xffff);
     auto pv = amf_boolean::create(v);
     return this->with_property(key, pv);
@@ -322,7 +344,8 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_object> with_property(const char *key, const char *v) {
+  std::shared_ptr<amf_object> with_property(const char *key, const char *v)
+  {
     assert(strlen(key) < (size_t)0xffff);
     auto pv = amf_string::create(v);
     return this->with_property(key, pv);
@@ -334,7 +357,8 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_object> with_property(const char *key, amf_value_ref v) {
+  std::shared_ptr<amf_object> with_property(const char *key, amf_value_ref v)
+  {
     this->v[key] = v;
     return shared_from_this();
   }
@@ -344,12 +368,14 @@ public:
   /// </summary>
   /// <param name="buf">The buffer to receive the serialized bytes array
   /// data.</param>
-  virtual void serialize(std::vector<uint8_t> &buf) override {
+  virtual void serialize(std::vector<uint8_t> &buf) override
+  {
     buf.reserve(buf.size() + 1);
     buf.emplace_back(type);
 
     uint16_t key_length = 0;
-    for (auto &kv : v) {
+    for (auto &kv : v)
+    {
       key_length = static_cast<uint16_t>(kv.first.length());
       buf.emplace_back(key_length >> 8);
       buf.emplace_back(key_length & 0x0ff);
@@ -369,7 +395,8 @@ public:
   /// </summary>
   /// <param name="data">The bytes array data to be parsed.</param>
   /// <returns>True if successful; otherwise fale.</returns>
-  virtual bool deserialize(const std::vector<uint8_t> &data) override {
+  virtual bool deserialize(const std::vector<uint8_t> &data) override
+  {
     throw std::logic_error("The method or operation is not implemented.");
   }
 
@@ -392,11 +419,12 @@ typedef std::shared_ptr<amf_object> amf_object_ref;
 /// Represents the AMF Array object.
 /// </summary>
 class amf_array : public amf_value,
-                  public std::enable_shared_from_this<amf_array> {
+                  public std::enable_shared_from_this<amf_array>
+{
 public:
   /// <summary>
   /// Enables the std::make_shared to be able to access
-  /// the protected constructor and desctructor.
+  /// the protected constructor and destructor.
   /// </summary>
   friend class std::_Ref_count_obj<amf_array>;
 
@@ -405,7 +433,8 @@ public:
   /// </summary>
   /// <param name="value">The value of the Array object.</param>
   /// <returns>The instance of the AMF Array object.</returns>
-  static std::shared_ptr<amf_array> create() {
+  static std::shared_ptr<amf_array> create()
+  {
     return std::make_shared<amf_array>();
   }
 
@@ -415,7 +444,8 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_array> with_item(const char *key, double v) {
+  std::shared_ptr<amf_array> with_item(const char *key, double v)
+  {
     auto pv = amf_number::create(v);
     assert(strlen(key) < (size_t)0xffff);
     return this->with_item(key, pv);
@@ -427,7 +457,8 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_array> with_item(const char *key, bool v) {
+  std::shared_ptr<amf_array> with_item(const char *key, bool v)
+  {
     assert(strlen(key) < (size_t)0xffff);
     auto pv = amf_boolean::create(v);
     return this->with_item(key, pv);
@@ -439,7 +470,8 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_array> with_item(const char *key, const char *v) {
+  std::shared_ptr<amf_array> with_item(const char *key, const char *v)
+  {
     assert(strlen(key) < (size_t)0xffff);
     auto pv = amf_string::create(v);
     return this->with_item(key, pv);
@@ -451,7 +483,8 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_array> with_item(const char *key, amf_value_ref v) {
+  std::shared_ptr<amf_array> with_item(const char *key, amf_value_ref v)
+  {
     this->v[key] = v;
     return shared_from_this();
   }
@@ -461,7 +494,8 @@ public:
   /// </summary>
   /// <param name="buf">The buffer to receive the serialized bytes array
   /// data.</param>
-  virtual void serialize(std::vector<uint8_t> &buf) override {
+  virtual void serialize(std::vector<uint8_t> &buf) override
+  {
     buf.reserve(buf.size() + 1);
     buf.emplace_back(type);
     uint32_t count = v.size();
@@ -471,7 +505,8 @@ public:
     buf.emplace_back((count & 0x000000ff));
 
     uint16_t key_length = 0;
-    for (auto &kv : v) {
+    for (auto &kv : v)
+    {
       key_length = static_cast<uint16_t>(kv.first.length());
       buf.emplace_back(key_length >> 8);
       buf.emplace_back(key_length & 0x0ff);
@@ -491,7 +526,8 @@ public:
   /// </summary>
   /// <param name="data">The bytes array data to be parsed.</param>
   /// <returns>True if successful; otherwise fale.</returns>
-  virtual bool deserialize(const std::vector<uint8_t> &data) override {
+  virtual bool deserialize(const std::vector<uint8_t> &data) override
+  {
     throw std::logic_error("The method or operation is not implemented.");
   }
 
@@ -524,7 +560,8 @@ static const uint8_t ON_META_DATA_LENGTH = 0x0a;
 /// <summary>
 /// The FLV tag types.
 /// </summary>
-enum tag_type_e {
+enum tag_type_e
+{
   Unknown = 0,
   Audio = 0x08,
   Video = 0x09,
@@ -537,7 +574,8 @@ typedef tag_type_e tag_type_t;
 /// <summary>
 /// The audio data sound formats.
 /// </summary>
-enum audio_data_sound_format {
+enum audio_data_sound_format
+{
   LPCM_PE = 0,
   ADPCM = 1,
   MP3 = 2,
@@ -557,7 +595,8 @@ enum audio_data_sound_format {
 /// <summary>
 /// The AAC audio data packet types.
 /// </summary>
-enum aac_audio_data_packet_type {
+enum aac_audio_data_packet_type
+{
   AacSequenceHeader = 0,
   AacRaw = 1,
 };
@@ -565,7 +604,8 @@ enum aac_audio_data_packet_type {
 /// <summary>
 /// The audio data sound sample rates.
 /// </summary>
-enum audio_data_sound_rate_e {
+enum audio_data_sound_rate_e
+{
   R5K5HZ = 0,
   R11KHZ = 1,
   R22KHZ = 2,
@@ -576,7 +616,8 @@ typedef audio_data_sound_rate_e audio_data_sound_rate_t;
 /// <summary>
 /// The audio data sound bit depths.
 /// </summary>
-enum audio_data_sound_size_e {
+enum audio_data_sound_size_e
+{
   S8BIT = 0,
   S16BIT = 1,
 };
@@ -585,7 +626,8 @@ typedef audio_data_sound_size_e audio_data_sound_size_t;
 /// <summary>
 /// The audio data sound channel counts.
 /// </summary>
-enum audio_data_sound_type_e {
+enum audio_data_sound_type_e
+{
   MONO = 0,
   STEREO = 1,
 };
@@ -594,7 +636,8 @@ typedef audio_data_sound_type_e audio_data_sound_type_t;
 /// <summary>
 /// The video data frame types.
 /// </summary>
-enum video_data_frame_type {
+enum video_data_frame_type
+{
   KEY_FRAME = 1,
   INTER_FRAME = 2,
   DISPOSABLE_INTER_FRAME = 3,
@@ -605,7 +648,8 @@ enum video_data_frame_type {
 /// <summary>
 /// The video data codec ids.
 /// </summary>
-enum video_data_codec_id {
+enum video_data_codec_id
+{
   JPEG = 1,
   H263 = 2,
   SCREEN_VIDEO = 3,
@@ -618,7 +662,8 @@ enum video_data_codec_id {
 /// <summary>
 /// The AVC video packet types.
 /// </summary>
-enum avc_video_packet_type {
+enum avc_video_packet_type
+{
   AvcSequenceHeader = 0,
   AvcNALU = 1,
   AvcSequenceHeaderEOF = 2,
@@ -627,7 +672,8 @@ enum avc_video_packet_type {
 /// <summary>
 /// Represents the FLV stream builder.
 /// </summary>
-class flv_stream_builder {
+class flv_stream_builder
+{
 private:
   /// <summary>
   /// The tag count already proceed.
@@ -658,7 +704,8 @@ public:
   /// <summary>
   /// Resets the FLV stream builder instance.
   /// </summary>
-  void reset() {
+  void reset()
+  {
     tag_count_ = 0;
     has_audio_ = false;
     has_video_ = false;
@@ -673,17 +720,20 @@ public:
   /// <param name="has_video">Whether there is video data or not.</param>
   /// <returns>The self-reference.</returns>
   flv_stream_builder &init_stream_header(std::vector<uint8_t> &buf,
-                                         bool has_audio, bool has_video) {
+                                         bool has_audio, bool has_video)
+  {
     buf.clear();
     buf.resize(9 + 4, 0);
 
     uint8_t flags = 0;
     has_audio_ = has_audio;
-    if (has_audio_) {
+    if (has_audio_)
+    {
       flags |= 0x04;
     }
     has_video_ = has_video;
-    if (has_video_) {
+    if (has_video_)
+    {
       flags |= 0x01;
     }
 
@@ -723,7 +773,8 @@ public:
   /// </param>
   /// <returns>The self-reference.</returns>
   flv_stream_builder &append_meta_tag(std::vector<uint8_t> &buf,
-                                      amf::amf_value_ref meta) {
+                                      amf::amf_value_ref meta)
+  {
     std::vector<uint8_t> meta_data;
     amf::amf_string::create(ON_META_DATA)->serialize(meta_data);
     meta->serialize(meta_data);
@@ -743,7 +794,8 @@ public:
   /// <returns>The self-reference.</returns>
   flv_stream_builder &append_video_tag(std::vector<uint8_t> &buf,
                                        uint32_t timestamp, const uint8_t *data,
-                                       uint32_t length) {
+                                       uint32_t length)
+  {
     append_tag(buf, Video, timestamp, 0, data, length);
     return *this;
   }
@@ -762,7 +814,8 @@ public:
   /// <returns>The self-reference.</returns>
   flv_stream_builder &append_video_tag_with_avc_decoder_config(
       std::vector<uint8_t> &buf, uint32_t timestamp, const uint8_t *data,
-      uint32_t length) {
+      uint32_t length)
+  {
     std::vector<uint8_t> avc_packet;
     avc_packet.reserve(512);
     avc_packet.emplace_back(INTER_FRAME << 4 | AVC);
@@ -790,7 +843,8 @@ public:
   flv_stream_builder &
   append_video_tag_with_avc_nalu_data(std::vector<uint8_t> &buf,
                                       uint32_t timestamp, const uint8_t *data,
-                                      uint32_t length) {
+                                      uint32_t length)
+  {
     std::vector<uint8_t> avc_packet;
     avc_packet.reserve(512);
     avc_packet.emplace_back(INTER_FRAME << 4 | AVC);
@@ -816,7 +870,8 @@ public:
   /// <returns>The self-reference.</returns>
   flv_stream_builder &append_audio_tag(std::vector<uint8_t> &buf,
                                        uint32_t timestamp, const uint8_t *data,
-                                       uint32_t length) {
+                                       uint32_t length)
+  {
     append_tag(buf, Audio, timestamp, 0, data, length);
     return *this;
   }
@@ -839,7 +894,8 @@ public:
   flv_stream_builder &append_audio_tag_with_aac_specific_config(
       std::vector<uint8_t> &buf, uint32_t timestamp,
       audio_data_sound_rate_t rate, audio_data_sound_size_t size,
-      audio_data_sound_type_t type, const uint8_t *data, uint32_t length) {
+      audio_data_sound_type_t type, const uint8_t *data, uint32_t length)
+  {
     std::vector<uint8_t> aac_packet;
     aac_packet.reserve(32);
     uint8_t fb = AAC << 4;
@@ -871,7 +927,8 @@ public:
   flv_stream_builder &append_audio_tag_with_aac_frame_data(
       std::vector<uint8_t> &buf, uint32_t timestamp,
       audio_data_sound_rate_t rate, audio_data_sound_size_t size,
-      audio_data_sound_type_t type, const uint8_t *data, uint32_t length) {
+      audio_data_sound_type_t type, const uint8_t *data, uint32_t length)
+  {
     std::vector<uint8_t> aac_packet;
     aac_packet.reserve(32);
     uint8_t fb = AAC << 4;
@@ -899,7 +956,8 @@ protected:
   /// <param name="length">The lenght of the tag body data.</param>
   void append_tag(std::vector<uint8_t> &buf, tag_type_t type,
                   uint32_t timestamp, uint32_t strem_id, const uint8_t *data,
-                  uint32_t length) {
+                  uint32_t length)
+  {
     int32_t original_size = buf.size();
     buf.reserve(buf.size() + FLV_TAG_HEADER_SIZE + length);
 
@@ -939,7 +997,8 @@ protected:
   /// </summary>
   /// <param name="buf">The buffer.</param>
   /// <param name="length">The tag size.</param>
-  void append_tag_size(std::vector<uint8_t> &buf, uint32_t length) {
+  void append_tag_size(std::vector<uint8_t> &buf, uint32_t length)
+  {
     buf.reserve(buf.size() + 4);
     buf.emplace_back((length & 0xff000000) >> 24);
     buf.emplace_back((length & 0x00ff0000) >> 16);
