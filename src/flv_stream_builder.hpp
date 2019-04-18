@@ -15,6 +15,7 @@
 #include <map>
 #include <memory>
 #include <vector>
+#include <string>
 
 // @cond PRIVATE_ENTITY
 /// <summary>
@@ -49,9 +50,9 @@ typedef amf_value_type_e amf_value_type_t;
 template <class T> class amf_ref : public std::shared_ptr<T> {
 public:
   using std::shared_ptr<T>::shared_ptr;
-
+  amf_ref(const std::shared_ptr<T>& p) : std::shared_ptr<T>(p){}
 protected:
-  auto get() { return std::shared_ptr<T>::get(); }
+  T* get() { return std::shared_ptr<T>::get(); }
 };
 
 /// <summary>
