@@ -46,6 +46,14 @@ enum amf_value_type_e {
 };
 typedef amf_value_type_e amf_value_type_t;
 
+template <class T> class amf_ref : public std::shared_ptr<T> {
+public:
+  using std::shared_ptr<T>::shared_ptr;
+
+protected:
+  auto get() { return std::shared_ptr<T>::get(); }
+};
+
 /// <summary>
 /// Represents the AMF object root.
 /// </summary>
@@ -73,20 +81,20 @@ public:
   /// <returns>True if successful; otherwise fale.</returns>
   virtual bool deserialize(const std::vector<uint8_t> &data) = 0;
 };
-typedef std::shared_ptr<amf_root> amf_root_ref;
+typedef amf_ref<amf_root> amf_root_ref;
 
 /// <summary>
 /// Represents the AMF value object base.
 /// </summary>
 class amf_value : public amf_root {
 protected:
-  /// <summary>
-  /// The AMF value type.
-  /// </summary>
+  // <summary>
+  // The AMF value type.
+  // </summary>
   amf_value_type_t type;
 
-public:
-  amf_value(amf_value_type_t t) : type(t){};
+protected:
+  explicit amf_value(amf_value_type_t t) : type(t){};
   ~amf_value() {}
 
   /// <summary>
@@ -95,7 +103,7 @@ public:
   /// <returns></returns>
   virtual amf_value_type_t value_type() const override { return type; }
 };
-typedef std::shared_ptr<amf_value> amf_value_ref;
+typedef amf_ref<amf_value> amf_value_ref;
 
 /// <summary>
 /// Represents the AMF Number object.
@@ -103,18 +111,12 @@ typedef std::shared_ptr<amf_value> amf_value_ref;
 class amf_number : public amf_value {
 public:
   /// <summary>
-  /// Enables the std::make_shared to be able to access
-  /// the protected constructor and destructor.
-  /// </summary>
-  friend std::_Ref_count_obj<amf_number>;
-
-  /// <summary>
   /// Creates an instance of the AMF Number object.
   /// </summary>
   /// <param name="value">The value of the Number object.</param>
   /// <returns>The instance of the AMF Number object.</returns>
-  static std::shared_ptr<amf_number> create(double value) {
-    return std::make_shared<amf_number>(value);
+  static amf_ref<amf_number> create(double value) {
+    return amf_ref<amf_number>(new amf_number(value));
   }
 
   /// <summary>
@@ -142,8 +144,7 @@ public:
   }
 
 protected:
-  amf_number(double value) : amf_value(NumberType), v(value){};
-  ~amf_number(){};
+  explicit amf_number(double value) : amf_value(NumberType), v(value){};
 
 private:
   DISALLOW_COPY_AND_ASSIGN(amf_number);
@@ -154,7 +155,7 @@ private:
   /// </summary>
   double v;
 };
-typedef std::shared_ptr<amf_number> amf_number_ref;
+typedef amf_ref<amf_number> amf_number_ref;
 
 /// <summary>
 /// Represents the AMF Boolean object.
@@ -162,18 +163,12 @@ typedef std::shared_ptr<amf_number> amf_number_ref;
 class amf_boolean : public amf_value {
 public:
   /// <summary>
-  /// Enables the std::make_shared to be able to access
-  /// the protected constructor and destructor.
-  /// </summary>
-  friend std::_Ref_count_obj<amf_boolean>;
-
-  /// <summary>
   /// Creates an instance of the AMF Boolean object.
   /// </summary>
   /// <param name="value">The value of the Boolean object.</param>
   /// <returns>The instance of the AMF Boolean object.</returns>
-  static std::shared_ptr<amf_boolean> create(bool value) {
-    return std::make_shared<amf_boolean>(value);
+  static amf_ref<amf_boolean> create(bool value) {
+    return amf_ref<amf_boolean>(new amf_boolean(value));
   }
 
   /// <summary>
@@ -197,8 +192,7 @@ public:
   }
 
 protected:
-  amf_boolean(bool value) : amf_value(BooleanType), v(value){};
-  ~amf_boolean(){};
+  explicit amf_boolean(bool value) : amf_value(BooleanType), v(value){};
 
 private:
   DISALLOW_COPY_AND_ASSIGN(amf_boolean);
@@ -209,7 +203,7 @@ private:
   /// </summary>
   bool v;
 };
-typedef std::shared_ptr<amf_boolean> amf_boolean_ref;
+typedef amf_ref<amf_boolean> amf_boolean_ref;
 
 /// <summary>
 /// Represents the AMF String object.
@@ -217,19 +211,13 @@ typedef std::shared_ptr<amf_boolean> amf_boolean_ref;
 class amf_string : public amf_value {
 public:
   /// <summary>
-  /// Enables the std::make_shared to be able to access
-  /// the protected constructor and destructor.
-  /// </summary>
-  friend class std::_Ref_count_obj<amf_string>;
-
-  /// <summary>
   /// Creates an instance of the AMF String object.
   /// </summary>
   /// <param name="value">The value of the String object.</param>
   /// <returns>The instance of the AMF String object.</returns>
-  static std::shared_ptr<amf_string> create(const char *value) {
+  static amf_ref<amf_string> create(const char *value) {
     assert(strlen(value) < (size_t)0xffff);
-    return std::make_shared<amf_string>(value);
+    return amf_ref<amf_string>(new amf_string(value));
   }
 
   /// <summary>
@@ -257,8 +245,7 @@ public:
   }
 
 protected:
-  amf_string(const char *value) : amf_value(StringType), v(value){};
-  ~amf_string(){};
+  explicit amf_string(const char *value) : amf_value(StringType), v(value){};
 
 private:
   DISALLOW_COPY_AND_ASSIGN(amf_string);
@@ -269,7 +256,7 @@ private:
   /// </summary>
   std::string v;
 };
-typedef std::shared_ptr<amf_string> amf_string_ref;
+typedef amf_ref<amf_string> amf_string_ref;
 
 /// <summary>
 /// Represents the AMF Object object.
@@ -281,15 +268,15 @@ public:
   /// Enables the std::make_shared to be able to access
   /// the protected constructor and destructor.
   /// </summary>
-  friend class std::_Ref_count_obj<amf_object>;
+  // friend class std::_Ref_count_obj<amf_object>;
 
   /// <summary>
   /// Creates an instance of the AMF Object object.
   /// </summary>
   /// <param name="value">The value of the Object object.</param>
   /// <returns>The instance of the AMF Object object.</returns>
-  static std::shared_ptr<amf_object> create() {
-    return std::make_shared<amf_object>();
+  static amf_ref<amf_object> create() {
+    return amf_ref<amf_object>(new amf_object());
   }
 
   /// <summary>
@@ -298,7 +285,7 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_object> with_property(const char *key, double v) {
+  amf_ref<amf_object> with_property(const char *key, double v) {
     assert(strlen(key) < (size_t)0xffff);
     auto pv = amf_number::create(v);
     return this->with_property(key, pv);
@@ -310,7 +297,7 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_object> with_property(const char *key, bool v) {
+  amf_ref<amf_object> with_property(const char *key, bool v) {
     assert(strlen(key) < (size_t)0xffff);
     auto pv = amf_boolean::create(v);
     return this->with_property(key, pv);
@@ -322,7 +309,7 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_object> with_property(const char *key, const char *v) {
+  amf_ref<amf_object> with_property(const char *key, const char *v) {
     assert(strlen(key) < (size_t)0xffff);
     auto pv = amf_string::create(v);
     return this->with_property(key, pv);
@@ -334,7 +321,7 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_object> with_property(const char *key, amf_value_ref v) {
+  amf_ref<amf_object> with_property(const char *key, amf_value_ref v) {
     this->v[key] = v;
     return shared_from_this();
   }
@@ -374,8 +361,7 @@ public:
   }
 
 protected:
-  amf_object() : amf_value(ObjectType){};
-  ~amf_object(){};
+  explicit amf_object() : amf_value(ObjectType){};
 
 private:
   DISALLOW_COPY_AND_ASSIGN(amf_object);
@@ -386,7 +372,7 @@ private:
   /// </summary>
   std::map<std::string, amf_value_ref> v;
 };
-typedef std::shared_ptr<amf_object> amf_object_ref;
+typedef amf_ref<amf_object> amf_object_ref;
 
 /// <summary>
 /// Represents the AMF Array object.
@@ -395,18 +381,12 @@ class amf_array : public amf_value,
                   public std::enable_shared_from_this<amf_array> {
 public:
   /// <summary>
-  /// Enables the std::make_shared to be able to access
-  /// the protected constructor and destructor.
-  /// </summary>
-  friend class std::_Ref_count_obj<amf_array>;
-
-  /// <summary>
   /// Creates an instance of the AMF Array object.
   /// </summary>
   /// <param name="value">The value of the Array object.</param>
   /// <returns>The instance of the AMF Array object.</returns>
-  static std::shared_ptr<amf_array> create() {
-    return std::make_shared<amf_array>();
+  static amf_ref<amf_array> create() {
+    return amf_ref<amf_array>(new amf_array());
   }
 
   /// <summary>
@@ -415,7 +395,7 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_array> with_item(const char *key, double v) {
+  amf_ref<amf_array> with_item(const char *key, double v) {
     auto pv = amf_number::create(v);
     assert(strlen(key) < (size_t)0xffff);
     return this->with_item(key, pv);
@@ -427,7 +407,7 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_array> with_item(const char *key, bool v) {
+  amf_ref<amf_array> with_item(const char *key, bool v) {
     assert(strlen(key) < (size_t)0xffff);
     auto pv = amf_boolean::create(v);
     return this->with_item(key, pv);
@@ -439,7 +419,7 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_array> with_item(const char *key, const char *v) {
+  amf_ref<amf_array> with_item(const char *key, const char *v) {
     assert(strlen(key) < (size_t)0xffff);
     auto pv = amf_string::create(v);
     return this->with_item(key, pv);
@@ -451,7 +431,7 @@ public:
   /// <param name="key">The property name,</param>
   /// <param name="v">The property value.</param>
   /// <returns>The self-reference.</returns>
-  std::shared_ptr<amf_array> with_item(const char *key, amf_value_ref v) {
+  amf_ref<amf_array> with_item(const char *key, amf_value_ref v) {
     this->v[key] = v;
     return shared_from_this();
   }
@@ -496,8 +476,7 @@ public:
   }
 
 protected:
-  amf_array() : amf_value(ECMAArrayType){};
-  ~amf_array(){};
+  explicit amf_array() : amf_value(ECMAArrayType){};
 
 private:
   DISALLOW_COPY_AND_ASSIGN(amf_array);
@@ -508,8 +487,7 @@ private:
   /// </summary>
   std::map<std::string, amf_value_ref> v;
 };
-typedef std::shared_ptr<amf_array> amf_array_ref;
-
+typedef amf_ref<amf_array> amf_array_ref;
 } // namespace amf
 
 static const uint8_t FLV_HEADER_SIZE = 9;
