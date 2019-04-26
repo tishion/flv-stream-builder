@@ -10,6 +10,6 @@ file(GLOB_RECURSE SRC_FILES
     "test/test.cpp"
 )
 
-add_executable(test
+add_executable(flv-builder-test
     ${SRC_FILES}
 )

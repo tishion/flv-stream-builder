@@ -12,6 +12,7 @@
 #pragma once
 #include <assert.h>
 #include <atomic>
+#include <cstring>
 #include <map>
 #include <memory>
 #include <string>
