@@ -612,6 +612,11 @@ enum avc_video_packet_type {
 class flv_stream_builder {
 private:
   /// <summary>
+  /// The under layer stream
+  /// </summary>
+  std::ostream &os_;
+
+  /// <summary>
   /// The tag count already proceed.
   /// </summary>
   std::atomic<uint64_t> tag_count_;
@@ -630,7 +635,7 @@ public:
   /// <summary>
   /// Constructs an instance of the FLV builder stream.
   /// </summary>
-  flv_stream_builder() {}
+  flv_stream_builder(std::ostream &s) : os_(s) {}
 
   /// <summary>
   /// Destructs the instance.
@@ -638,13 +643,9 @@ public:
   ~flv_stream_builder() {}
 
   /// <summary>
-  /// Resets the FLV stream builder instance.
+  ///
   /// </summary>
-  void reset() {
-    tag_count_ = 0;
-    has_audio_ = false;
-    has_video_ = false;
-  }
+  void flush() { os_.flush(); }
 
   /// <summary>
   /// Initializes the FLV stream/file header and append it to the end of the
@@ -654,10 +655,8 @@ public:
   /// <param name="has_audio">Whether there is audio data or not.</param>
   /// <param name="has_video">Whether there is video data or not.</param>
   /// <returns>The self-reference.</returns>
-  flv_stream_builder &init_stream_header(std::vector<uint8_t> &buf,
-                                         bool has_audio, bool has_video) {
-    buf.clear();
-    buf.resize(9 + 4, 0);
+  flv_stream_builder &init_stream_header(bool has_audio, bool has_video) {
+    std::vector<uint8_t> buf(9 + 4, 0);
 
     uint8_t flags = 0;
     has_audio_ = has_audio;
@@ -690,6 +689,7 @@ public:
     buf[10] = 0;
     buf[11] = 0;
     buf[12] = 0;
+    os_.write((char *)buf.data(), buf.size());
     return *this;
   }
 
@@ -699,17 +699,15 @@ public:
   /// type 1. Then it constructs a meta tag (head + body) with the AMF type 1
   /// and type 2 and append it to the end of the buffer.
   /// </summary>
-  /// <param name="buf">The buffer to receive the meta tag data.</param>
   /// <param name="meta">
   /// An AMF value which represents AMF type 2 of the meta tag data.
   /// </param>
   /// <returns>The self-reference.</returns>
-  flv_stream_builder &append_meta_tag(std::vector<uint8_t> &buf,
-                                      amf::amf_value_ref meta) {
+  flv_stream_builder &append_meta_tag(amf::amf_value_ref meta) {
     std::vector<uint8_t> meta_data;
     amf::amf_string::create(ON_META_DATA)->serialize(meta_data);
     meta->serialize(meta_data);
-    append_tag(buf, Script, 0, 0, meta_data.data(), meta_data.size());
+    append_tag(Script, 0, 0, meta_data.data(), meta_data.size());
     return *this;
   }
 
@@ -718,15 +716,13 @@ public:
   /// uses the data passed in as an VIDEODATA to construct a video tag
   /// with the VIDEODATA and appends it to the end of the buffer.
   /// </summary>
-  /// <param name="buf">The buffer to receive the video tag data.</param>
   /// <param name="timestamp">The timetamp of the tag.</param>
   /// <param name="data">The video tag body data.</param>
   /// <param name="length">The lenght of the tag body data.</param>
   /// <returns>The self-reference.</returns>
-  flv_stream_builder &append_video_tag(std::vector<uint8_t> &buf,
-                                       uint32_t timestamp, const uint8_t *data,
+  flv_stream_builder &append_video_tag(uint32_t timestamp, const uint8_t *data,
                                        uint32_t length) {
-    append_tag(buf, Video, timestamp, 0, data, length);
+    append_tag(Video, timestamp, 0, data, length);
     return *this;
   }
 
@@ -737,14 +733,12 @@ public:
   /// Finally it constructs a video tag with the VIDEODATA and appends it to the
   /// end of the buffer.
   /// </summary>
-  /// <param name="buf">The buffer to receive the video tag data.</param>
   /// <param name="timestamp">The timetamp of the tag.</param>
   /// <param name="data">The AVCDecoderConfigRecord data.</param>
   /// <param name="length">The data length.</param>
   /// <returns>The self-reference.</returns>
   flv_stream_builder &append_video_tag_with_avc_decoder_config(
-      std::vector<uint8_t> &buf, uint32_t timestamp, const uint8_t *data,
-      uint32_t length) {
+      uint32_t timestamp, const uint8_t *data, uint32_t length) {
     std::vector<uint8_t> avc_packet;
     avc_packet.reserve(512);
     avc_packet.emplace_back(INTER_FRAME << 4 | AVC);
@@ -753,7 +747,7 @@ public:
     avc_packet.emplace_back(0);
     avc_packet.emplace_back(0);
     std::copy(data, data + length, std::back_inserter(avc_packet));
-    append_video_tag(buf, timestamp, avc_packet.data(), avc_packet.size());
+    append_video_tag(timestamp, avc_packet.data(), avc_packet.size());
     return *this;
   }
 
@@ -763,16 +757,14 @@ public:
   /// then constructs a VIDEODATA with the AVCVideoPacket. Finally it constructs
   /// a video tag with the VIDEODATA and appends it to the end of the buffer.
   /// </summary>
-  /// <param name="buf">The buffer to receive the video tag data.</param>
   /// <param name="timestamp">The timetamp of the tag.</param>
   /// <param name="data">
   /// The NALU data (AVC format, first 4 bytes represents the length).
   /// </param> <param name="length">The data length.</param>
   /// <returns>The self-reference.</returns>
-  flv_stream_builder &
-  append_video_tag_with_avc_nalu_data(std::vector<uint8_t> &buf,
-                                      uint32_t timestamp, const uint8_t *data,
-                                      uint32_t length) {
+  flv_stream_builder &append_video_tag_with_avc_nalu_data(uint32_t timestamp,
+                                                          const uint8_t *data,
+                                                          uint32_t length) {
     std::vector<uint8_t> avc_packet;
     avc_packet.reserve(512);
     avc_packet.emplace_back(INTER_FRAME << 4 | AVC);
@@ -782,7 +774,7 @@ public:
     avc_packet.emplace_back((composition_time & 0x0000ff00) >> 8);
     avc_packet.emplace_back((composition_time & 0x000000ff));
     std::copy(data, data + length, std::back_inserter(avc_packet));
-    append_video_tag(buf, timestamp, avc_packet.data(), avc_packet.size());
+    append_video_tag(timestamp, avc_packet.data(), avc_packet.size());
     return *this;
   }
 
@@ -791,15 +783,13 @@ public:
   /// first uses the data passed in as an AUDIODATA to construct a video tag
   /// with the AUDIODATA, then appends it to the end of the buffer.
   /// </summary>
-  /// <param name="buf">The buffer to receive the audio tag data.</param>
   /// <param name="timestamp">The timetamp of the tag.</param>
   /// <param name="data">The audio tag body data.</param>
   /// <param name="length">The lenght of the tag body data.</param>
   /// <returns>The self-reference.</returns>
-  flv_stream_builder &append_audio_tag(std::vector<uint8_t> &buf,
-                                       uint32_t timestamp, const uint8_t *data,
+  flv_stream_builder &append_audio_tag(uint32_t timestamp, const uint8_t *data,
                                        uint32_t length) {
-    append_tag(buf, Audio, timestamp, 0, data, length);
+    append_tag(Audio, timestamp, 0, data, length);
     return *this;
   }
 
@@ -810,7 +800,6 @@ public:
   /// Finally it constructs a video tag with the AUDIODTA and appends it to the
   /// end of the buffer.
   /// </summary>
-  /// <param name="buf">The buffer to receive the audio tag data.</param>
   /// <param name="timestamp">The timetamp of the tag.</param>
   /// <param name="rate">The sound sample rate.</param>
   /// <param name="size">The sound bit depth.</param>
@@ -819,9 +808,9 @@ public:
   /// <param name="length">The lenght of the AudioSpecificConfig data.</param>
   /// <returns>The self-reference.</returns>
   flv_stream_builder &append_audio_tag_with_aac_specific_config(
-      std::vector<uint8_t> &buf, uint32_t timestamp,
-      audio_data_sound_rate_t rate, audio_data_sound_size_t size,
-      audio_data_sound_type_t type, const uint8_t *data, uint32_t length) {
+      uint32_t timestamp, audio_data_sound_rate_t rate,
+      audio_data_sound_size_t size, audio_data_sound_type_t type,
+      const uint8_t *data, uint32_t length) {
     std::vector<uint8_t> aac_packet;
     aac_packet.reserve(32);
     uint8_t fb = AAC << 4;
@@ -831,7 +820,7 @@ public:
     aac_packet.emplace_back(fb);
     aac_packet.emplace_back(AacSequenceHeader);
     std::copy(data, data + length, std::back_inserter(aac_packet));
-    append_audio_tag(buf, timestamp, aac_packet.data(), aac_packet.size());
+    append_audio_tag(timestamp, aac_packet.data(), aac_packet.size());
     return *this;
   }
 
@@ -842,7 +831,6 @@ public:
   /// Finally it constructs a video tag with the AUDIODTA and appends it to the
   /// end of the buffer.
   /// </summary>
-  /// <param name="buf">The buffer to receive the audio tag data.</param>
   /// <param name="timestamp">The timetamp of the tag.</param>
   /// <param name="rate">The sound sample rate.</param>
   /// <param name="size">The sound bit depth.</param>
@@ -851,9 +839,9 @@ public:
   /// <param name="length">The length of the raw AAC frame data.</param>
   /// <returns>The self-reference.</returns>
   flv_stream_builder &append_audio_tag_with_aac_frame_data(
-      std::vector<uint8_t> &buf, uint32_t timestamp,
-      audio_data_sound_rate_t rate, audio_data_sound_size_t size,
-      audio_data_sound_type_t type, const uint8_t *data, uint32_t length) {
+      uint32_t timestamp, audio_data_sound_rate_t rate,
+      audio_data_sound_size_t size, audio_data_sound_type_t type,
+      const uint8_t *data, uint32_t length) {
     std::vector<uint8_t> aac_packet;
     aac_packet.reserve(32);
     uint8_t fb = AAC << 4;
@@ -863,7 +851,7 @@ public:
     aac_packet.emplace_back(fb);
     aac_packet.emplace_back(AacRaw);
     std::copy(data, data + length, std::back_inserter(aac_packet));
-    append_audio_tag(buf, timestamp, aac_packet.data(), aac_packet.size());
+    append_audio_tag(timestamp, aac_packet.data(), aac_packet.size());
     return *this;
   }
 
@@ -873,60 +861,46 @@ protected:
   /// uses the data passed in as an tag body to constructs a FLV tag then
   /// appends it to the end of the buffer.
   /// </summary>
-  /// <param name="buf">The buffer to receive the audio tag data.</param>
   /// <param name="type"></param>
   /// <param name="timestamp">The timetamp of the tag.</param>
   /// <param name="strem_id">The strem id (always 0).</param>
   /// <param name="data">The tag body data.</param>
   /// <param name="length">The lenght of the tag body data.</param>
-  void append_tag(std::vector<uint8_t> &buf, tag_type_t type,
-                  uint32_t timestamp, uint32_t strem_id, const uint8_t *data,
-                  uint32_t length) {
-    int32_t original_size = buf.size();
-    buf.reserve(buf.size() + FLV_TAG_HEADER_SIZE + length);
-
+  void append_tag(tag_type_t type, uint32_t timestamp, uint32_t strem_id,
+                  const uint8_t *data, uint32_t length) {
     // Header.Type
-    buf.emplace_back(type);
+    os_.put(type);
 
     // Header.DataSize
-    buf.emplace_back((length & 0x00ff0000) >> 16);
-    buf.emplace_back((length & 0x0000ff00) >> 8);
-    buf.emplace_back((length & 0x000000ff));
+    os_.put((length & 0x00ff0000) >> 16);
+    os_.put((length & 0x0000ff00) >> 8);
+    os_.put((length & 0x000000ff));
 
     // Header.Timestamp
-    buf.emplace_back((timestamp & 0x00ff0000) >> 16);
-    buf.emplace_back((timestamp & 0x0000ff00) >> 8);
-    buf.emplace_back((timestamp & 0x000000ff));
+    os_.put((timestamp & 0x00ff0000) >> 16);
+    os_.put((timestamp & 0x0000ff00) >> 8);
+    os_.put((timestamp & 0x000000ff));
 
     // Header.TimestampExtended
-    buf.emplace_back((timestamp & 0xff000000) >> 24);
+    os_.put((timestamp & 0xff000000) >> 24);
 
     // Header.StreamID (actually this is always 0 according to the
     // specification)
-    buf.emplace_back((strem_id & 0x00ff0000) >> 16);
-    buf.emplace_back((strem_id & 0x0000ff00) >> 8);
-    buf.emplace_back((strem_id & 0x000000ff));
+    os_.put((strem_id & 0x00ff0000) >> 16);
+    os_.put((strem_id & 0x0000ff00) >> 8);
+    os_.put((strem_id & 0x000000ff));
 
     // Data
-    std::copy(data, data + length, std::back_inserter(buf));
+    os_.write((char *)data, length);
 
-    uint32_t tag_size = buf.size() - original_size;
-    append_tag_size(buf, tag_size);
+    // Size
+    uint32_t size = FLV_TAG_HEADER_SIZE + length;
+    os_.put((length & 0xff000000) >> 24);
+    os_.put((length & 0x00ff0000) >> 16);
+    os_.put((length & 0x0000ff00) >> 8);
+    os_.put((length & 0x000000ff));
 
     tag_count_++;
-  }
-
-  /// <summary>
-  /// Appends the tag size to the specified buffer.
-  /// </summary>
-  /// <param name="buf">The buffer.</param>
-  /// <param name="length">The tag size.</param>
-  void append_tag_size(std::vector<uint8_t> &buf, uint32_t length) {
-    buf.reserve(buf.size() + 4);
-    buf.emplace_back((length & 0xff000000) >> 24);
-    buf.emplace_back((length & 0x00ff0000) >> 16);
-    buf.emplace_back((length & 0x0000ff00) >> 8);
-    buf.emplace_back((length & 0x000000ff));
   }
 };
 } // namespace flv

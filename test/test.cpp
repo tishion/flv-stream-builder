@@ -3,11 +3,13 @@
 
 namespace test {
 static void generate_flv_file() {
-  // Prepare the buffer to receive the FLV data
-  std::vector<uint8_t> buf;
+  // Create the file stream and write the FLV data to the file
+  std::ofstream ofs;
+  ofs.open("test_flv_data.flv",
+           std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
 
   // The FLV builder
-  flv::flv_stream_builder builder;
+  flv::flv_stream_builder builder(ofs);
 
   // Create the meta data
   auto meta = flv::amf::amf_array::create()
@@ -25,22 +27,17 @@ static void generate_flv_file() {
 
   // Initialize the FLV stream header
   builder
-      .init_stream_header(buf, true, true)
+      .init_stream_header(true, true)
 
       // Append the meta tag
-      .append_meta_tag(buf, meta)
+      .append_meta_tag(meta)
 
       // Append a video tag
-      .append_video_tag(buf, 0, 0, 0)
+      .append_video_tag(0, 0, 0)
 
       // Append a audio tag
-      .append_audio_tag(buf, 0, 0, 0);
+      .append_audio_tag(0, 0, 0);
 
-  // Create the file stream and write the FLV data to the file
-  std::ofstream ofs;
-  ofs.open("test_flv_data.flv",
-           std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
-  ofs.write((char *)buf.data(), buf.size());
   ofs.close();
 }
 } // namespace test
