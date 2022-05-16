@@ -7,11 +7,33 @@ CPP header-only utility for building FLV stream
 Usage example:
 
 ```cpp
-  // Prepare the buffer to receive the FLV data
-  std::vector<uint8_t> buf;
+#include <fstream>
+
+#include <flv_stream_builder.hpp>
+
+namespace test {
+class AVFrame {
+public:
+  bool isVideo() const { return true; }
+
+  bool isAudio() const { return true; }
+
+  uint32_t timestamp() const { return 0; }
+
+  const uint8_t *data() const { return nullptr; }
+
+  const uint32_t length() const { return 0; }
+};
+typedef std::vector<AVFrame> AVFrameSource;
+
+static void generate_flv_file(const AVFrameSource &source) {
+  // Create the file stream and write the FLV data to the file
+  std::ofstream ofs;
+  ofs.open("test_flv_data.flv",
+           std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
 
   // The FLV builder
-  flv::flv_stream_builder builder;
+  flv::flv_stream_builder builder(ofs);
 
   // Create the meta data
   auto meta = flv::amf::amf_array::create()
@@ -27,23 +49,31 @@ Usage example:
                   ->with_item("audiocodecid", (double)10)
                   ->with_item("filesize", (double)0);
 
-  // Initialize the FLV stream header
   builder
-      .init_stream_header(buf, true, true)
+      .init_stream_header(true, true) // Initialize the FLV stream header
+      .append_meta_tag(meta);         // Append the meta tag
 
-      // Append the meta tag
-      .append_meta_tag(buf, meta)
-
+  for (auto &frame : source) {
+    if (frame.isVideo()) {
       // Append a video tag
-      .append_video_tag(buf, 0, 0, 0)
-
+      builder.append_video_tag(frame.timestamp(), frame.data(), frame.length());
+    } else if (frame.isAudio()) {
       // Append a audio tag
-      .append_audio_tag(buf, 0, 0, 0);
+      builder.append_audio_tag(frame.timestamp(), frame.data(), frame.length());
+    } else {
+    }
+  }
 
-  // Create the file stream and write the FLV data to the file
-  std::ofstream ofs;
-  ofs.open("test_flv_data.flv",
-           std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
-  ofs.write((char *)buf.data(), buf.size());
   ofs.close();
+}
+} // namespace test
+
+int main() {
+
+  test::AVFrameSource source;
+
+  // generate flv file stream
+  test::generate_flv_file(source);
+}
+
   ```

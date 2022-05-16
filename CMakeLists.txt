@@ -5,8 +5,12 @@ project(flv-stream-builder)
 set(CMAKE_CXX_STANDARD 11)
 set(CXX_STANDARD_REQUIRED)
 
+include_directories(
+    "include"
+)
+
 file(GLOB_RECURSE SRC_FILES
-    "src/flv_stream_builder.hpp"
+    "include/flv_stream_builder.hpp"
     "test/test.cpp"
 )
 

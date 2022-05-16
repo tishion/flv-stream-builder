@@ -1,8 +1,23 @@
-#include "../src/flv_stream_builder.hpp"
 #include <fstream>
 
+#include <flv_stream_builder.hpp>
+
 namespace test {
-static void generate_flv_file() {
+class AVFrame {
+public:
+  bool isVideo() const { return true; }
+
+  bool isAudio() const { return true; }
+
+  uint32_t timestamp() const { return 0; }
+
+  const uint8_t *data() const { return nullptr; }
+
+  const uint32_t length() const { return 0; }
+};
+typedef std::vector<AVFrame> AVFrameSource;
+
+static void generate_flv_file(const AVFrameSource &source) {
   // Create the file stream and write the FLV data to the file
   std::ofstream ofs;
   ofs.open("test_flv_data.flv",
@@ -25,21 +40,29 @@ static void generate_flv_file() {
                   ->with_item("audiocodecid", (double)10)
                   ->with_item("filesize", (double)0);
 
-  // Initialize the FLV stream header
   builder
-      .init_stream_header(true, true)
+      .init_stream_header(true, true) // Initialize the FLV stream header
+      .append_meta_tag(meta);         // Append the meta tag
 
-      // Append the meta tag
-      .append_meta_tag(meta)
-
+  for (auto &frame : source) {
+    if (frame.isVideo()) {
       // Append a video tag
-      .append_video_tag(0, 0, 0)
-
+      builder.append_video_tag(frame.timestamp(), frame.data(), frame.length());
+    } else if (frame.isAudio()) {
       // Append a audio tag
-      .append_audio_tag(0, 0, 0);
+      builder.append_audio_tag(frame.timestamp(), frame.data(), frame.length());
+    } else {
+    }
+  }
 
   ofs.close();
 }
 } // namespace test
 
-int main() { test::generate_flv_file(); }
+int main() {
+
+  test::AVFrameSource source;
+
+  // generate flv file stream
+  test::generate_flv_file(source);
+}
